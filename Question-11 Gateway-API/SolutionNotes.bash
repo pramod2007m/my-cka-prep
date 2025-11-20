@@ -1,14 +1,9 @@
-# Step 1
-# Verify secret and ingress exist and describe them
-k get secret
-k describe secret web-tls
-k get ingress
-k describe ingress web
+# Step 1: Inspect existing assets (host, secret, backend service/port)
+kubectl describe ingress web
+kubectl describe secret web-tls
 
-# Step 2
-# Create the Gateway (use the docs)
-vi gw.yaml
-#yaml
+# Step 2: Create Gateway (mirrors Ingress host + TLS)
+cat <<'EOF' > gw.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -20,19 +15,17 @@ spec:
     protocol: HTTPS
     port: 443
     hostname: gateway.web.k8s.local
-    tls:                              # This is the section we need to add to maintain the existing config
-      mode: Terminate                 # for the ingress resource
+    tls:
+      mode: Terminate
       certificateRefs:
-       - kind: Secret
-         name: web-tls
-# Apply it
-k apply -f gw.yaml
-# Check it is there
-k get gateway
+      - kind: Secret
+        name: web-tls
+EOF
+kubectl apply -f gw.yaml
+kubectl get gateway
 
-# Step 3 create the HTTPRoute
-vi http.yaml
-# Use the docs for reference
+# Step 3: Create HTTPRoute (mirrors Ingress rules)
+cat <<'EOF' > http.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -46,14 +39,13 @@ spec:
   - matches:
     - path:
         type: PathPrefix
-        value: /                  # We see the path from the ingress description
+        value: /
     backendRefs:
-    - name: web-service           # Name and port need to match the service we have
-      port: 80.
-# apply it
-k apply -f http.yaml
+    - name: web-service
+      port: 80
+EOF
+kubectl apply -f http.yaml
 
-# Check
-k describe gateway,httproute
-
-# Check all fields match as expected. In the exam you may be given a curl to run to check this
+# Step 4: Verify
+kubectl describe gateway web-gateway
+kubectl describe httproute web-route

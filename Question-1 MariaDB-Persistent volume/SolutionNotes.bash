@@ -1,27 +1,9 @@
-# Step 1 - check the pv exists
-k get pv
-k describe pv mariadb-pv
+# Step 1: free the PV if Released
+kubectl describe pv mariadb-pv
+kubectl edit pv mariadb-pv   # remove claimRef block so status becomes Available
 
-# Step 2 - Clear existing claim
-# We can see that the PV has a RELEASED status as it has a claim from the previous PVC, we need to
-# edit the PV to remove the claim reference. We can also see the PV has an empty storage class which
-# we need to keep in mind for creating our PVC
-k edit pv mariadb-pv
-# We need to remove this section
-  claimRef:
-    apiVersion: v1
-    kind: PersistentVolumeClaim
-    name: mariadb
-    namespace: mariadb
-    resourceVersion: "11228"
-    uid: ffa27d96-5199-4785-8ad9-562e8f5d5f53
-# Check the PV is now available
-k get pv mariadb-pv
-# PV should now have status AVAILABLE
-
-# Step 3 Create the PVC (Remember the storage class for the PV is empty)
-vi pvc.yaml
-# Use the docs
+# Step 2: create PVC with no storageClass
+cat <<'EOF' > pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -29,36 +11,17 @@ metadata:
   namespace: mariadb
 spec:
   accessModes:
-    - ReadWriteOnce
+  - ReadWriteOnce
   resources:
     requests:
       storage: 250Mi
-  storageClassName: "" # This will allow it to bind to the existing PV with ono SC
-# Apply it
-k apply pvc.yaml
-# Check it has bound
-k get pvc -n mariadb mariadb
-# Status should show bound
-# Double check it has bound to the PV
-k get pv mariadb-pv
-# This should show as bound with mariadb claim name
+  storageClassName: ""
+EOF
+kubectl apply -f pvc.yaml
+kubectl get pvc mariadb -n mariadb
+kubectl get pv mariadb-pv     # should show Bound to mariadb
 
-# Step 4 Check the deployment
-vi mariadb-deploy.yaml
-# Ensure the deployment looks as expected and specifically it uses your PVC
-volumes:
-        - name: mariadb-storage
-          persistentVolumeClaim:
-            claimName: mariadb
-# Apply it
-k apply -f mariadb-deploy.yaml
-
-# Step 5 final checks
-k get po -n mariadb
-# Pod should be running, we want to check it is using the PVC
-k describe po -n mariadb mariadb-xxxxx-xxxxx
-# We should see this
-Volumes:
-  mariadb-storage:
-    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
-    ClaimName:  mariadb
+# Step 3: ensure deployment uses the PVC
+# mariadb-deploy.yaml should mount claimName: mariadb
+kubectl apply -f mariadb-deploy.yaml
+kubectl get pods -n mariadb
