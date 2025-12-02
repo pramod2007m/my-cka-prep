@@ -86,7 +86,39 @@ if [ -n "$claim_ref" ]; then
   kubectl patch pv mariadb-pv --type=json -p '[{"op":"remove","path":"/spec/claimRef"}]'
 fi
 
+# Refresh the deployment manifest for practice: claimName intentionally left blank
+cat <<'EOF' > ~/mariadb-deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb
+  namespace: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb:10.6
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: rootpass
+        volumeMounts:
+        - name: mariadb-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mariadb-storage
+        persistentVolumeClaim:
+          claimName: ""  # TODO: set to the PVC you create (mariadb)
+EOF
+
 echo "✅ Lab setup complete!"
 echo "   - PV retained and ready for reuse"
 echo "   - Namespace: mariadb"
-echo "   - Task: recreate PVC and deployment reusing existing PV"
+echo "   - Task: recreate PVC and deployment reusing existing PV (fill claimName in ~/mariadb-deploy.yaml)"
