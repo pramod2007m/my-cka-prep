@@ -11,7 +11,6 @@ spec:
   resources:
     requests:
       storage: 250Mi
-  storageClassName: ""
 EOF
 kubectl apply -f pvc.yaml
 kubectl get pvc mariadb -n mariadb

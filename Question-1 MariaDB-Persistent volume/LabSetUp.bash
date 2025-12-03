@@ -18,7 +18,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""  # Empty storage class
+  storageClassName: standard  # Use default storage class so PVC without storageClassName binds
   hostPath:
     path: /mnt/data/mariadb
 EOF
@@ -36,7 +36,6 @@ spec:
   resources:
     requests:
       storage: 250Mi
-  storageClassName: ""  # Empty storage class
 EOF
 
 echo "🔹 Creating initial MariaDB Deployment..."
