@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: scripts/run-question.sh \"Question-XX Topic\"" >&2
+  echo "Usage: scripts/run-question.sh \"Question-XX-Topic\"" >&2
   exit 1
 fi
 
